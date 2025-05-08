@@ -1,6 +1,6 @@
 # MS Rates - Microserviço de Avaliações
 
-Este é um microserviço desenvolvido em Python usando FastAPI e MongoDB para gerenciar avaliações de profissionais.
+Este é um microserviço desenvolvido em Python usando FastAPI e MongoDB para gerenciar avaliações de profissionais. O serviço faz parte do ecossistema EasyProFind.
 
 ## Tecnologias Utilizadas
 
@@ -9,6 +9,9 @@ Este é um microserviço desenvolvido em Python usando FastAPI e MongoDB para ge
 - MongoDB 4.7.1
 - Pydantic 1.10.13
 - Pytest 8.2.1
+- Uvicorn
+- Python-dotenv
+- Mongomock (para testes)
 
 ## Requisitos
 
@@ -49,14 +52,7 @@ pip install -r requirements.txt
 4. Configure as variáveis de ambiente:
 Crie um arquivo `.env` na raiz do projeto com o seguinte conteúdo:
 ```env
-MONGODB_URI=mongodb://localhost:27017/easyprofind
-MONGODB_DATABASE=easyprofind
-MONGODB_COLLECTION=ratings
-```
-
-5. (Opcional) Para desenvolvimento local, você pode usar Docker para o MongoDB:
-```bash
-docker run -d -p 27017:27017 --name mongodb mongo:4.7.1
+MONGODB_URI=mongodb://easyprofind:securepassword@192.168.100.17:27017
 ```
 
 ## Executando a Aplicação
@@ -71,15 +67,39 @@ A documentação Swagger estará disponível em `http://localhost:8000/docs`
 
 ## Endpoints
 
-### Ratings
+### Health Check
+- `GET /health/` - Verifica a saúde do serviço
 
+### Ratings
 - `POST /ratings/` - Criar uma nova avaliação
 - `GET /ratings/{rating_id}` - Buscar uma avaliação por ID
 - `GET /ratings/professional/{professional_id}` - Listar avaliações de um profissional
+- `GET /ratings/consumer/{consumer_id}` - Listar avaliações de um consumidor
+- `DELETE /ratings/{rating_id}` - Excluir uma avaliação
+
+## Modelo de Dados
+
+O serviço utiliza o MongoDB para armazenar as avaliações com o seguinte schema:
+
+```json
+{
+  "_id": "string (UUID)",
+  "professional_id": "string (UUID)",
+  "consumer_id": "string (UUID)",
+  "rate": "integer (0-5)",
+  "description": "string (opcional)",
+  "created_at": "datetime"
+}
+```
 
 ## Testes
 
-Para executar os testes:
+O projeto possui uma cobertura abrangente de testes:
+
+- Testes unitários: `pytest tests/unit`
+- Testes de integração: `pytest tests/integration`
+
+Para executar todos os testes:
 ```bash
 pytest tests/
 ```
@@ -90,11 +110,13 @@ pytest tests/
 ms_rates/
 ├── src/
 │   ├── api/
-│   │   └── v1/
-│   │       ├── endpoints/
-│   │       └── schemas/
+│   │   ├── v1/
+│   │   │   ├── endpoints/
+│   │   │   └── schemas/
+│   │   └── middleware/
 │   ├── application/
-│   │   └── services/
+│   │   ├── services/
+│   │   └── dtos/
 │   ├── domain/
 │   │   ├── interfaces/
 │   │   └── exceptions/
@@ -109,136 +131,34 @@ ms_rates/
 └── README.md
 ```
 
-## Descrição
-O `ms_rate` é responsável por gerenciar avaliações de profissionais feitas por consumidores. Utiliza FastAPI, MongoDB e segue princípios de clean code e arquitetura de microserviços.
+## Tratamento de Erros
 
-## Estrutura do Projeto
-```
-ms_rate/
-├── src/
-│   ├── api/
-│   │   ├── v1/
-│   │   │   ├── endpoints/
-│   │   │   └── schemas/
-│   │   │
-│   │   └── application/
-│   │       ├── services/
-│   │       └── dtos/
-│   │
-│   ├── domain/
-│   │   ├── entities/
-│   │   ├── interfaces/
-│   │   └── value_objects/
-│   │
-│   ├── infrastructure/
-│   │   ├── database/
-│   │   ├── repositories/
-│   │   └── external/
-│   │
-│   └── main.py
-│
-├── tests/
-│   ├── unit/
-│   ├── integration/
-│   └── e2e/
-│
-├── Dockerfile
-│
-├── requirements.txt
-│
-├── .env
-│
-├── .gitignore
-│
-└── README.md
-```
+O serviço implementa um tratamento de erros global que retorna respostas padronizadas para diferentes tipos de erros:
 
-## Requisitos
-- Python 3.10+
-- FastAPI
-- PyMongo
-- Pydantic
-- python-dotenv
-- pytest
-- mongomock (para testes)
-- MongoDB (externo, já rodando em 192.168.100.17:27017)
-
-## Configuração
-1. Clone o repositório e acesse o diretório `ms_rate`.
-2. Crie um arquivo `.env` com:
-   ```
-   MONGODB_URI=mongodb://easyprofind:securepassword@192.168.100.17:27017
-   ```
-3. Instale as dependências:
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-## Rodando Localmente
-```bash
-uvicorn src.main:app --reload
-```
-
-## Rodando com Docker
-```bash
-docker build -t ms_rate .
-docker run --env-file .env -p 8000:8000 ms_rate
-```
-
-## API Documentation
-O microserviço inclui documentação automática via Swagger UI e ReDoc:
-
-- Swagger UI: http://localhost:8000/docs
-- ReDoc: http://localhost:8000/redoc
-
-A documentação inclui:
-- Descrição detalhada de todos os endpoints
-- Schemas de requisição e resposta
-- Exemplos de uso
-- Códigos de erro possíveis
-
-## Endpoints
-- `GET /health`: Health check do serviço
-- `POST /ratings`: Cria uma avaliação
-- `GET /ratings/{id}`: Busca avaliação por ID
-- `GET /ratings/professional/{professional_id}`: Lista avaliações de um profissional
-
-## Integração com ms_bff
-O `ms_bff` é responsável por validar `professional_id` e `consumer_id` antes de chamar o `ms_rate`.
-
-## Observações
-- Não há pasta `migrations` (MongoDB é schemaless).
-- Não há `docker-compose.yml` (MongoDB já está rodando externamente).
-- A coleção `ratings` é inicializada com validação de esquema ao iniciar o app.
-- Logs são gerados para todas as operações importantes.
-- Erros são tratados e retornados com códigos HTTP apropriados.
-
-## Testes
-- Testes unitários: `pytest tests/unit`
-- Testes de integração: `pytest tests/integration`
-- Os testes de integração usam `mongomock` para simular o MongoDB.
-
-## Modelo de Dados
-
-O serviço utiliza o MongoDB para armazenar as avaliações com o seguinte schema:
-
-```json
-{
-  "professional_id": "string",
-  "consumer_id": "string",
-  "rating": number,
-  "comment": "string",
-  "created_at": "datetime",
-  "updated_at": "datetime"
-}
-```
+- Erros de validação (422)
+- Erros de banco de dados (500)
+- Erros de autenticação (401)
+- Erros de não encontrado (404)
+- Erros inesperados (500)
 
 ## Logs e Monitoramento
 
 O serviço implementa logging estruturado para todas as operações importantes:
-- Criação de avaliações
-- Busca de avaliações
+- Conexão com o banco de dados
+- Operações CRUD
 - Erros e exceções
-- Operações de banco de dados
+- Eventos de startup e shutdown
 
-Os logs são formatados em JSON para fácil integração com ferramentas de monitoramento. 
+## Integração
+
+O serviço se integra com outros microserviços do ecossistema EasyProFind:
+- `ms_bff`: Responsável por validar `professional_id` e `consumer_id`
+- MongoDB externo: Rodando em 192.168.100.17:27017
+
+## Observações Importantes
+
+- O projeto é privado e não deve ser compartilhado publicamente
+- As credenciais do MongoDB devem ser mantidas seguras no arquivo `.env`
+- O serviço utiliza validação de schema no MongoDB para garantir a integridade dos dados
+- Todos os IDs são UUIDs para garantir unicidade global
+- O serviço implementa paginação para listagens de avaliações 
