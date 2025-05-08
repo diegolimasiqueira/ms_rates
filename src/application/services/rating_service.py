@@ -77,5 +77,19 @@ class RatingService:
                 details={"error": str(e)}
             )
 
+    def list_ratings_by_consumer(self, consumer_id: UUID, page: int = 1, size: int = 10) -> tuple[List[RatingResponse], int]:
+        """List ratings made by a consumer."""
+        try:
+            logger.info(f"Listing ratings made by consumer {consumer_id} (page {page}, size {size})")
+            ratings, total = self.repository.list_ratings_by_consumer(consumer_id, page, size)
+            logger.info(f"Found {len(ratings)} ratings made by consumer {consumer_id} (total: {total})")
+            return [RatingResponse(**r) for r in ratings], total
+        except Exception as e:
+            logger.error(f"Error listing ratings: {str(e)}")
+            raise DatabaseException(
+                message="Failed to list ratings",
+                details={"error": str(e)}
+            )
+
 def get_rating_service(repo: RatingRepository = Depends(get_rating_repository)) -> RatingService:
     return RatingService(repo) 

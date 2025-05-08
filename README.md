@@ -16,6 +16,15 @@ Este é um microserviço desenvolvido em Python usando FastAPI e MongoDB para ge
 - MongoDB
 - Ambiente virtual Python (venv)
 
+## Arquitetura
+
+O projeto segue os princípios da Arquitetura Hexagonal (Ports and Adapters) e Clean Architecture, dividido em camadas:
+
+- **API Layer**: Contém os endpoints e schemas da API
+- **Application Layer**: Contém a lógica de negócio e serviços
+- **Domain Layer**: Contém as entidades, interfaces e regras de negócio
+- **Infrastructure Layer**: Contém implementações concretas (repositórios, banco de dados)
+
 ## Configuração do Ambiente
 
 1. Clone o repositório:
@@ -41,6 +50,13 @@ pip install -r requirements.txt
 Crie um arquivo `.env` na raiz do projeto com o seguinte conteúdo:
 ```env
 MONGODB_URI=mongodb://localhost:27017/easyprofind
+MONGODB_DATABASE=easyprofind
+MONGODB_COLLECTION=ratings
+```
+
+5. (Opcional) Para desenvolvimento local, você pode usar Docker para o MongoDB:
+```bash
+docker run -d -p 27017:27017 --name mongodb mongo:4.7.1
 ```
 
 ## Executando a Aplicação
@@ -200,4 +216,29 @@ O `ms_bff` é responsável por validar `professional_id` e `consumer_id` antes d
 ## Testes
 - Testes unitários: `pytest tests/unit`
 - Testes de integração: `pytest tests/integration`
-- Os testes de integração usam `mongomock` para simular o MongoDB. 
+- Os testes de integração usam `mongomock` para simular o MongoDB.
+
+## Modelo de Dados
+
+O serviço utiliza o MongoDB para armazenar as avaliações com o seguinte schema:
+
+```json
+{
+  "professional_id": "string",
+  "consumer_id": "string",
+  "rating": number,
+  "comment": "string",
+  "created_at": "datetime",
+  "updated_at": "datetime"
+}
+```
+
+## Logs e Monitoramento
+
+O serviço implementa logging estruturado para todas as operações importantes:
+- Criação de avaliações
+- Busca de avaliações
+- Erros e exceções
+- Operações de banco de dados
+
+Os logs são formatados em JSON para fácil integração com ferramentas de monitoramento. 

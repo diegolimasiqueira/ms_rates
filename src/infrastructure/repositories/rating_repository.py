@@ -87,6 +87,28 @@ class RatingRepositoryImpl(RatingRepository):
                 details={"error": str(e)}
             )
 
+    def list_ratings_by_consumer(self, consumer_id: UUID, page: int = 1, size: int = 10) -> tuple[List[Dict[str, Any]], int]:
+        """List ratings made by a consumer."""
+        try:
+            # Calcula o total de documentos
+            total = self.collection.count_documents({"consumer_id": str(consumer_id)})
+            
+            # Calcula o skip baseado na página e tamanho
+            skip = (page - 1) * size
+            
+            # Busca os documentos paginados
+            cursor = self.collection.find(
+                {"consumer_id": str(consumer_id)}
+            ).sort("created_at", -1).skip(skip).limit(size)
+            
+            return [self._doc_to_dict(doc) for doc in cursor], total
+        except Exception as e:
+            logger.error(f"Error listing ratings made by consumer {consumer_id}: {str(e)}")
+            raise DatabaseException(
+                message="Failed to list ratings",
+                details={"error": str(e)}
+            )
+
     def _doc_to_dict(self, doc: Dict[str, Any]) -> Dict[str, Any]:
         """Convert MongoDB document to dictionary."""
         return {

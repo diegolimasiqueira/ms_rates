@@ -18,4 +18,9 @@ class RatingRepository(ABC):
     @abstractmethod
     def list_ratings_by_professional(self, professional_id: UUID) -> List[Dict[str, Any]]:
         """List ratings for a professional, ordered by created_at descending."""
+        pass
+
+    @abstractmethod
+    def list_ratings_by_consumer(self, consumer_id: UUID, page: int = 1, size: int = 10) -> tuple[List[Dict[str, Any]], int]:
+        """List ratings made by a consumer, ordered by created_at descending."""
         pass 
