@@ -14,11 +14,8 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
         return JSONResponse(
             status_code=exc.status_code,
             content={
-                "error": {
-                    "code": exc.error_code,
-                    "message": exc.message,
-                    "details": exc.details
-                }
+                "message": exc.message,
+                "details": exc.details
             }
         )
     
@@ -26,11 +23,8 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
         return JSONResponse(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             content={
-                "error": {
-                    "code": "VALIDATION_ERROR",
-                    "message": "Invalid request data",
-                    "details": [{"loc": err["loc"], "msg": err["msg"]} for err in exc.errors()]
-                }
+                "message": "Invalid request data",
+                "details": [{"loc": err["loc"], "msg": err["msg"]} for err in exc.errors()]
             }
         )
     
@@ -38,11 +32,8 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content={
-                "error": {
-                    "code": "DATABASE_ERROR",
-                    "message": "An error occurred while accessing the database",
-                    "details": {"error": str(exc)}
-                }
+                "message": "An error occurred while accessing the database",
+                "details": {"error": str(exc)}
             }
         )
 
@@ -50,10 +41,7 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         content={
-            "error": {
-                "code": "INTERNAL_SERVER_ERROR",
-                "message": "An unexpected error occurred",
-                "details": {"error": str(exc)} if request.app.debug else None
-            }
+            "message": "An unexpected error occurred",
+            "details": {"error": str(exc)} if request.app.debug else None
         }
     ) 

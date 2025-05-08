@@ -52,18 +52,8 @@ router = APIRouter(
 )
 def create_rating(rating: RatingCreate, service: RatingService = Depends(get_rating_service)):
     """Create a new rating."""
-    try:
-        logger.info(f"Received request to create rating for professional {rating.professional_id}")
-        return service.create_rating(rating)
-    except ValidationException as e:
-        logger.error(f"Invalid rating data: {str(e)}")
-        raise e
-    except DatabaseException as e:
-        logger.error(f"Database error creating rating: {str(e)}")
-        raise e
-    except Exception as e:
-        logger.error(f"Unexpected error creating rating: {str(e)}")
-        raise DatabaseException(details={"error": str(e)})
+    logger.info(f"Received request to create rating for professional {rating.professional_id}")
+    return service.create_rating(rating)
 
 @router.get(
     "/{id}",
@@ -107,21 +97,8 @@ def create_rating(rating: RatingCreate, service: RatingService = Depends(get_rat
 )
 def get_rating(id: UUID, service: RatingService = Depends(get_rating_service)):
     """Get a rating by its ID."""
-    try:
-        logger.info(f"Received request to get rating {id}")
-        return service.get_rating_by_id(id)
-    except NotFoundException as e:
-        logger.warning(f"Rating not found: {str(e)}")
-        raise e
-    except ValidationException as e:
-        logger.error(f"Invalid rating data: {str(e)}")
-        raise e
-    except DatabaseException as e:
-        logger.error(f"Database error getting rating: {str(e)}")
-        raise e
-    except Exception as e:
-        logger.error(f"Unexpected error getting rating: {str(e)}")
-        raise DatabaseException(details={"error": str(e)})
+    logger.info(f"Received request to get rating {id}")
+    return service.get_rating_by_id(id)
 
 @router.get(
     "/professional/{professional_id}",
@@ -169,26 +146,16 @@ def list_ratings_by_professional(
     service: RatingService = Depends(get_rating_service)
 ):
     """List ratings for a professional."""
-    try:
-        logger.info(f"Received request to list ratings for professional {professional_id} (page {page}, size {size})")
-        ratings, total = service.list_ratings_by_professional(professional_id, page, size)
-        pages = (total + size - 1) // size  # Round up
-        return PaginatedResponse(
-            items=ratings,
-            total=total,
-            page=page,
-            size=size,
-            pages=pages
-        )
-    except ValidationException as e:
-        logger.error(f"Invalid rating data: {str(e)}")
-        raise e
-    except DatabaseException as e:
-        logger.error(f"Database error listing ratings: {str(e)}")
-        raise e
-    except Exception as e:
-        logger.error(f"Unexpected error listing ratings: {str(e)}")
-        raise DatabaseException(details={"error": str(e)})
+    logger.info(f"Received request to list ratings for professional {professional_id} (page {page}, size {size})")
+    ratings, total = service.list_ratings_by_professional(professional_id, page, size)
+    pages = (total + size - 1) // size  # Round up
+    return PaginatedResponse(
+        items=ratings,
+        total=total,
+        page=page,
+        size=size,
+        pages=pages
+    )
 
 @router.get(
     "/consumer/{consumer_id}",
@@ -236,26 +203,16 @@ def list_ratings_by_consumer(
     service: RatingService = Depends(get_rating_service)
 ):
     """List ratings made by a consumer."""
-    try:
-        logger.info(f"Received request to list ratings made by consumer {consumer_id} (page {page}, size {size})")
-        ratings, total = service.list_ratings_by_consumer(consumer_id, page, size)
-        pages = (total + size - 1) // size  # Round up
-        return PaginatedResponse(
-            items=ratings,
-            total=total,
-            page=page,
-            size=size,
-            pages=pages
-        )
-    except ValidationException as e:
-        logger.error(f"Invalid rating data: {str(e)}")
-        raise e
-    except DatabaseException as e:
-        logger.error(f"Database error listing ratings: {str(e)}")
-        raise e
-    except Exception as e:
-        logger.error(f"Unexpected error listing ratings: {str(e)}")
-        raise DatabaseException(details={"error": str(e)})
+    logger.info(f"Received request to list ratings made by consumer {consumer_id} (page {page}, size {size})")
+    ratings, total = service.list_ratings_by_consumer(consumer_id, page, size)
+    pages = (total + size - 1) // size  # Round up
+    return PaginatedResponse(
+        items=ratings,
+        total=total,
+        page=page,
+        size=size,
+        pages=pages
+    )
 
 @router.delete(
     "/{id}",
@@ -285,18 +242,5 @@ def list_ratings_by_consumer(
 )
 def delete_rating(id: UUID, service: RatingService = Depends(get_rating_service)):
     """Delete a rating by its ID."""
-    try:
-        logger.info(f"Received request to delete rating {id}")
-        service.delete_rating(id)
-    except NotFoundException as e:
-        logger.warning(f"Rating not found: {str(e)}")
-        raise e
-    except ValidationException as e:
-        logger.error(f"Invalid rating data: {str(e)}")
-        raise e
-    except DatabaseException as e:
-        logger.error(f"Database error deleting rating: {str(e)}")
-        raise e
-    except Exception as e:
-        logger.error(f"Unexpected error deleting rating: {str(e)}")
-        raise DatabaseException(details={"error": str(e)}) 
+    logger.info(f"Received request to delete rating {id}")
+    service.delete_rating(id) 
