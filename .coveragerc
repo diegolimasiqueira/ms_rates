@@ -1,0 +1,28 @@
+[run]
+omit = 
+    */__init__.py
+    */tests/*
+    */venv/*
+    */migrations/*
+    */alembic/*
+    */docs/*
+    */scripts/*
+    */setup.py
+    */conftest.py
+    */pytest.ini
+    */.coveragerc
+    src/domain/exceptions.py
+
+[report]
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    raise NotImplementedError
+    if __name__ == .__main__.:
+    pass
+    raise ImportError
+
+[paths]
+source =
+    src/domain/exceptions
+    src/domain/exceptions/base_exceptions.py 

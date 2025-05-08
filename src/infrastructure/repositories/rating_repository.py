@@ -7,7 +7,7 @@ from typing import List, Optional, Dict, Any
 from fastapi import Depends
 import bson
 from pymongo.errors import WriteError, OperationFailure
-from datetime import datetime
+from datetime import datetime, timezone
 import uuid
 
 logger = logging.getLogger(__name__)
@@ -27,7 +27,7 @@ class RatingRepositoryImpl(RatingRepository):
             doc["professional_id"] = str(doc["professional_id"])
             doc["consumer_id"] = str(doc["consumer_id"])
             # Adiciona o timestamp atual
-            doc["created_at"] = datetime.utcnow()
+            doc["created_at"] = datetime.now(timezone.utc)
             logger.info(f"Tentando inserir documento: {doc}")
             self.collection.insert_one(doc)
             return doc

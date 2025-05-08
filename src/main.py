@@ -3,6 +3,7 @@ from fastapi import FastAPI
 from src.api.v1.endpoints import ratings, health
 from src.api.middleware.exception_handler import global_exception_handler
 from src.domain.exceptions.base_exceptions import BaseAPIException
+from pymongo.errors import PyMongoError
 
 # Configure logging
 logging.basicConfig(
@@ -20,6 +21,7 @@ app = FastAPI(
 )
 
 # Add exception handlers
+app.add_exception_handler(PyMongoError, global_exception_handler)
 app.add_exception_handler(BaseAPIException, global_exception_handler)
 app.add_exception_handler(Exception, global_exception_handler)
 

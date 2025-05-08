@@ -1,10 +1,11 @@
 import logging
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, Query, status, HTTPException
 from uuid import UUID
 from typing import List
 from src.api.v1.schemas.rating import RatingCreate, RatingResponse, PaginatedResponse
 from src.application.services.rating_service import RatingService, get_rating_service
 from src.domain.exceptions.base_exceptions import ValidationException, NotFoundException, DatabaseException
+from pymongo.errors import PyMongoError
 
 logger = logging.getLogger(__name__)
 router = APIRouter(
@@ -52,8 +53,27 @@ router = APIRouter(
 )
 def create_rating(rating: RatingCreate, service: RatingService = Depends(get_rating_service)):
     """Create a new rating."""
-    logger.info(f"Received request to create rating for professional {rating.professional_id}")
-    return service.create_rating(rating)
+    try:
+        logger.info(f"Received request to create rating for professional {rating.professional_id}")
+        return service.create_rating(rating)
+    except PyMongoError as e:
+        logger.error(f"MongoDB error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={
+                "message": "An error occurred while accessing the database",
+                "details": {"error": str(e)}
+            }
+        )
+    except Exception as e:
+        logger.error(f"Unexpected error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={
+                "message": "An unexpected error occurred",
+                "details": {"error": str(e)}
+            }
+        )
 
 @router.get(
     "/{id}",
