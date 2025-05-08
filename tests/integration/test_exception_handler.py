@@ -14,10 +14,19 @@ UUID1 = str(uuid4())
 UUID2 = str(uuid4())
 
 def test_request_validation_error():
-    # Envia um campo inválido para forçar o RequestValidationError
-    response = client.post("/ratings/", json={"rate": 999})
+    # Testa o handler de RequestValidationError
+    response = client.post("/ratings/", json={
+        "professional_id": "invalid-uuid",
+        "consumer_id": "invalid-uuid",
+        "rate": "invalid",
+        "description": "desc"
+    })
     assert response.status_code == 422
-    assert "Invalid request data" in response.text or "value_error" in response.text
+    response_data = response.json()
+    assert "detail" in response_data
+    assert isinstance(response_data["detail"], list)
+    assert len(response_data["detail"]) > 0
+    assert "value is not a valid uuid" in response_data["detail"][0]["msg"]
 
 def test_pymongo_error():
     # Testa o handler de PyMongoError
@@ -44,6 +53,31 @@ def test_pymongo_error():
         assert response_data["detail"]["message"] == "An error occurred while accessing the database"
         assert response_data["detail"]["details"]["error"] == "Erro no MongoDB"
 
+def test_pymongo_error_with_details():
+    # Testa o handler de PyMongoError com detalhes
+    from src.application.services.rating_service import RatingService
+    from pymongo.errors import PyMongoError
+
+    def raise_pymongo(*args, **kwargs):
+        raise PyMongoError("Erro no MongoDB", {"code": 123})
+
+    with pytest.MonkeyPatch.context() as m:
+        m.setattr(RatingService, "create_rating", raise_pymongo)
+
+        valid_data = {
+            "professional_id": UUID1,
+            "consumer_id": UUID2,
+            "rate": 5,
+            "description": "desc"
+        }
+
+        response = client.post("/ratings/", json=valid_data)
+        assert response.status_code == 500
+        response_data = response.json()
+        assert "detail" in response_data
+        assert response_data["detail"]["message"] == "An error occurred while accessing the database"
+        assert "Erro no MongoDB" in response_data["detail"]["details"]["error"]
+
 def test_unexpected_error():
     # Testa o handler de exceções inesperadas
     from src.application.services.rating_service import RatingService
@@ -60,6 +94,63 @@ def test_unexpected_error():
             "rate": 5,
             "description": "desc"
         }
+
+        response = client.post("/ratings/", json=valid_data)
+        assert response.status_code == 500
+        response_data = response.json()
+        assert "detail" in response_data
+        assert response_data["detail"]["message"] == "An unexpected error occurred"
+        assert response_data["detail"]["details"]["error"] == "Erro inesperado"
+
+def test_unexpected_error_with_debug():
+    # Testa o handler de exceções inesperadas com debug ativado
+    from src.application.services.rating_service import RatingService
+
+    def raise_unexpected(*args, **kwargs):
+        raise RuntimeError("Erro inesperado")
+
+    with pytest.MonkeyPatch.context() as m:
+        m.setattr(RatingService, "create_rating", raise_unexpected)
+
+        valid_data = {
+            "professional_id": UUID1,
+            "consumer_id": UUID2,
+            "rate": 5,
+            "description": "desc"
+        }
+
+        # Ativa o modo debug
+        app.debug = True
+
+        response = client.post("/ratings/", json=valid_data)
+        assert response.status_code == 500
+        response_data = response.json()
+        assert "detail" in response_data
+        assert response_data["detail"]["message"] == "An unexpected error occurred"
+        assert response_data["detail"]["details"]["error"] == "Erro inesperado"
+
+        # Desativa o modo debug
+        app.debug = False
+
+def test_unexpected_error_without_debug():
+    # Testa o handler de exceções inesperadas sem debug
+    from src.application.services.rating_service import RatingService
+
+    def raise_unexpected(*args, **kwargs):
+        raise RuntimeError("Erro inesperado")
+
+    with pytest.MonkeyPatch.context() as m:
+        m.setattr(RatingService, "create_rating", raise_unexpected)
+
+        valid_data = {
+            "professional_id": UUID1,
+            "consumer_id": UUID2,
+            "rate": 5,
+            "description": "desc"
+        }
+
+        # Garante que o modo debug está desativado
+        app.debug = False
 
         response = client.post("/ratings/", json=valid_data)
         assert response.status_code == 500

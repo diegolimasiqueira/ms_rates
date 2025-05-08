@@ -43,4 +43,12 @@ def test_get_uri_no_env_vars():
         assert "@" in uri
         assert ":" in uri
         assert "?" in uri
-        assert "authSource=admin" in uri 
+        assert "authSource=admin" in uri
+
+def test_get_uri_missing_env_var():
+    """Testa a obtenção da URI do MongoDB quando a variável MONGODB_URI não está definida."""
+    with patch.dict(os.environ, {}, clear=True):
+        with patch("src.infrastructure.database.mongo_config.load_dotenv", return_value=None):
+            with pytest.raises(RuntimeError) as exc_info:
+                MongoConfig.get_uri()
+            assert "MONGODB_URI is not set in environment variables" in str(exc_info.value) 

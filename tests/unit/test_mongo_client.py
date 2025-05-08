@@ -1,5 +1,5 @@
 import pytest
-from src.infrastructure.database.mongo_client import get_mongo_client, get_ratings_collection
+from src.infrastructure.database.mongo_client import get_mongo_client, get_ratings_collection, set_mongo_client
 from pymongo import MongoClient
 from pymongo.errors import CollectionInvalid, WriteError
 import mongomock
@@ -94,4 +94,73 @@ def test_collection_validation_schema():
     }
     with pytest.raises(WriteError) as exc_info:
         collection.insert_one(invalid_doc)
-    assert "Document failed validation" in str(exc_info.value) 
+    assert "Document failed validation" in str(exc_info.value)
+
+def test_create_collection_with_validation():
+    """Testa a criação da coleção com validação."""
+    collection = get_ratings_collection()
+    
+    # Verifica se a coleção foi criada
+    assert collection.name == "ratings"
+    
+    # Verifica se o schema de validação foi aplicado
+    options = collection.options()
+    assert "validator" in options
+    assert "$jsonSchema" in options["validator"]
+    
+    # Verifica os campos obrigatórios
+    required_fields = options["validator"]["$jsonSchema"]["required"]
+    assert "_id" in required_fields
+    assert "professional_id" in required_fields
+    assert "consumer_id" in required_fields
+    assert "rate" in required_fields
+    assert "created_at" in required_fields
+
+def test_create_collection_with_mongomock():
+    """Testa a criação da coleção usando mongomock."""
+    import mongomock
+    client = mongomock.MongoClient()
+    set_mongo_client(client)
+    
+    collection = get_ratings_collection()
+    
+    # Verifica se a coleção foi criada
+    assert collection.name == "ratings"
+    
+    # Verifica se os índices foram criados
+    indexes = list(collection.list_indexes())
+    assert len(indexes) >= 3  # _id (padrão), professional_id e consumer_id
+
+def test_create_collection_invalid():
+    """Testa a criação da coleção quando ela já existe."""
+    collection = get_ratings_collection()
+    
+    # Tenta criar a coleção novamente
+    collection = get_ratings_collection()
+    
+    # Verifica se a coleção ainda existe
+    assert collection.name == "ratings"
+
+def test_create_collection_with_validation_and_indexes():
+    """Testa a criação da coleção com validação e índices."""
+    collection = get_ratings_collection()
+    
+    # Verifica se a coleção foi criada
+    assert collection.name == "ratings"
+    
+    # Verifica se os índices foram criados
+    indexes = list(collection.list_indexes())
+    assert len(indexes) >= 4  # _id (padrão), professional_id, consumer_id e (professional_id, created_at)
+    
+    # Verifica o índice de professional_id
+    professional_index = next(idx for idx in indexes if "professional_id" in idx["key"] and len(idx["key"]) == 1)
+    assert professional_index["key"]["professional_id"] == 1
+    
+    # Verifica o índice de consumer_id
+    consumer_index = next(idx for idx in indexes if "consumer_id" in idx["key"])
+    assert consumer_index["key"]["consumer_id"] == 1
+    
+    # Verifica o índice composto (professional_id, created_at)
+    compound_index = next(idx for idx in indexes if "professional_id" in idx["key"] and "created_at" in idx["key"])
+    assert compound_index["key"]["professional_id"] == -1
+    assert compound_index["key"]["created_at"] == -1 

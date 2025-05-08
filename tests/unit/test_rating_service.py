@@ -142,6 +142,37 @@ def test_list_ratings_by_consumer(service, mock_repository):
     assert all(isinstance(r, RatingResponse) for r in result)
     assert all(r.consumer_id == consumer_id for r in result)
 
+def test_list_ratings_by_consumer_pagination(service, mock_repository):
+    """Testa a listagem de avaliações por consumidor com paginação."""
+    consumer_id = uuid4()
+    ratings = [
+        {
+            "_id": uuid4(),
+            "professional_id": uuid4(),
+            "consumer_id": consumer_id,
+            "rate": 5,
+            "description": "Test rating 1",
+            "created_at": datetime.now(UTC)
+        },
+        {
+            "_id": uuid4(),
+            "professional_id": uuid4(),
+            "consumer_id": consumer_id,
+            "rate": 4,
+            "description": "Test rating 2",
+            "created_at": datetime.now(UTC)
+        }
+    ]
+    mock_repository.list_ratings_by_consumer.return_value = (ratings, len(ratings))
+
+    # Testa com paginação
+    result, total = service.list_ratings_by_consumer(consumer_id, 2, 5)
+    assert len(result) == 2
+    assert total == 2
+    assert all(isinstance(r, RatingResponse) for r in result)
+    assert all(r.consumer_id == consumer_id for r in result)
+    mock_repository.list_ratings_by_consumer.assert_called_with(consumer_id, 2, 5)
+
 def test_delete_rating():
     repo = MockRatingRepository()
     service = RatingService(repo)
@@ -218,4 +249,17 @@ def test_get_rating_service_dependency():
     
     service = get_rating_service()
     assert isinstance(service, RatingService)
-    assert service.repository is not None 
+    assert service.repository is not None
+
+def test_list_ratings_by_consumer_error(service, mock_repository):
+    """Testa o tratamento de erro ao listar avaliações por consumidor."""
+    consumer_id = uuid4()
+    mock_repository.list_ratings_by_consumer.side_effect = DatabaseException(
+        message="Failed to list ratings",
+        details={"error": "Erro ao listar avaliações"}
+    )
+
+    with pytest.raises(DatabaseException) as exc_info:
+        service.list_ratings_by_consumer(consumer_id)
+    assert "Failed to list ratings" in str(exc_info.value)
+    mock_repository.list_ratings_by_consumer.assert_called_once_with(consumer_id, 1, 10) 

@@ -227,4 +227,134 @@ def test_delete_rating_error_handling(repository):
     # Tenta excluir uma avaliação inexistente
     rating_id = str(uuid4())
     deleted = repository.delete_rating(rating_id)
-    assert deleted is False 
+    assert deleted is False
+
+def test_create_rating_operation_failure(repository):
+    """Testa o tratamento de erro de operação ao criar uma avaliação."""
+    from pymongo.errors import OperationFailure
+    
+    def mock_insert_one(*args, **kwargs):
+        raise OperationFailure("Erro de operação")
+    
+    # Salva o método original
+    original_insert_one = repository.collection.insert_one
+    
+    try:
+        # Substitui o método por um mock
+        repository.collection.insert_one = mock_insert_one
+        
+        rating_data = {
+            "professional_id": str(uuid4()),
+            "consumer_id": str(uuid4()),
+            "rate": 5,
+            "description": "Test rating"
+        }
+        
+        with pytest.raises(DatabaseException) as exc_info:
+            repository.create_rating(rating_data)
+        assert "Database operation failed" in str(exc_info.value)
+    finally:
+        # Restaura o método original
+        repository.collection.insert_one = original_insert_one
+
+def test_create_rating_unexpected_error(repository):
+    """Testa o tratamento de erro inesperado ao criar uma avaliação."""
+    def mock_insert_one(*args, **kwargs):
+        raise RuntimeError("Erro inesperado")
+    
+    # Salva o método original
+    original_insert_one = repository.collection.insert_one
+    
+    try:
+        # Substitui o método por um mock
+        repository.collection.insert_one = mock_insert_one
+        
+        rating_data = {
+            "professional_id": str(uuid4()),
+            "consumer_id": str(uuid4()),
+            "rate": 5,
+            "description": "Test rating"
+        }
+        
+        with pytest.raises(DatabaseException) as exc_info:
+            repository.create_rating(rating_data)
+        assert "Failed to create rating" in str(exc_info.value)
+    finally:
+        # Restaura o método original
+        repository.collection.insert_one = original_insert_one
+
+def test_get_rating_by_id_error(repository):
+    """Testa o tratamento de erro ao buscar uma avaliação por ID."""
+    def mock_find_one(*args, **kwargs):
+        raise RuntimeError("Erro inesperado")
+    
+    # Salva o método original
+    original_find_one = repository.collection.find_one
+    
+    try:
+        # Substitui o método por um mock
+        repository.collection.find_one = mock_find_one
+        
+        with pytest.raises(DatabaseException) as exc_info:
+            repository.get_rating_by_id(uuid4())
+        assert "Failed to fetch rating" in str(exc_info.value)
+    finally:
+        # Restaura o método original
+        repository.collection.find_one = original_find_one
+
+def test_list_ratings_by_professional_error(repository):
+    """Testa o tratamento de erro ao listar avaliações por profissional."""
+    def mock_count_documents(*args, **kwargs):
+        raise RuntimeError("Erro inesperado")
+    
+    # Salva o método original
+    original_count_documents = repository.collection.count_documents
+    
+    try:
+        # Substitui o método por um mock
+        repository.collection.count_documents = mock_count_documents
+        
+        with pytest.raises(DatabaseException) as exc_info:
+            repository.list_ratings_by_professional(uuid4())
+        assert "Failed to list ratings" in str(exc_info.value)
+    finally:
+        # Restaura o método original
+        repository.collection.count_documents = original_count_documents
+
+def test_list_ratings_by_consumer_error(repository):
+    """Testa o tratamento de erro ao listar avaliações por consumidor."""
+    def mock_count_documents(*args, **kwargs):
+        raise RuntimeError("Erro inesperado")
+    
+    # Salva o método original
+    original_count_documents = repository.collection.count_documents
+    
+    try:
+        # Substitui o método por um mock
+        repository.collection.count_documents = mock_count_documents
+        
+        with pytest.raises(DatabaseException) as exc_info:
+            repository.list_ratings_by_consumer(uuid4())
+        assert "Failed to list ratings" in str(exc_info.value)
+    finally:
+        # Restaura o método original
+        repository.collection.count_documents = original_count_documents
+
+def test_delete_rating_error(repository):
+    """Testa o tratamento de erro ao excluir uma avaliação."""
+    def mock_delete_one(*args, **kwargs):
+        raise RuntimeError("Erro inesperado")
+    
+    # Salva o método original
+    original_delete_one = repository.collection.delete_one
+    
+    try:
+        # Substitui o método por um mock
+        repository.collection.delete_one = mock_delete_one
+        
+        with pytest.raises(DatabaseException) as exc_info:
+            repository.delete_rating(uuid4())
+        assert "Failed to delete rating" in str(exc_info.value)
+    finally:
+        # Restaura o método original
+        repository.collection.delete_one = original_delete_one 
