@@ -1,9 +1,10 @@
 import pytest
 from uuid import uuid4
-from datetime import datetime, timezone
+from datetime import datetime, timezone, UTC
 from src.application.services.rating_service import RatingService
-from src.api.v1.schemas.rating import RatingCreate
+from src.api.v1.schemas.rating import RatingCreate, RatingResponse
 from src.domain.exceptions.base_exceptions import ValidationException, NotFoundException, DatabaseException
+from unittest.mock import Mock
 
 class MockRatingRepository:
     def __init__(self, should_raise_error=False):
@@ -55,6 +56,14 @@ class MockRatingRepository:
         del self.ratings[str(rating_id)]
         return True
 
+@pytest.fixture
+def mock_repository():
+    return Mock()
+
+@pytest.fixture
+def service(mock_repository):
+    return RatingService(mock_repository)
+
 def test_create_and_get_rating():
     repo = MockRatingRepository()
     service = RatingService(repo)
@@ -104,26 +113,34 @@ def test_list_ratings_by_professional():
     assert total == 3
     assert all(str(r.professional_id) == str(prof_id) for r in ratings)
 
-def test_list_ratings_by_consumer():
-    repo = MockRatingRepository()
-    service = RatingService(repo)
+def test_list_ratings_by_consumer(service, mock_repository):
+    """Testa a listagem de avaliações por consumidor."""
     consumer_id = uuid4()
-    
-    # Criar algumas avaliações
-    for i in range(3):
-        data = RatingCreate(
-            professional_id=uuid4(),
-            consumer_id=consumer_id,
-            rate=i,
-            description=None
-        )
-        service.create_rating(data)
-    
-    # Listar avaliações
-    ratings, total = service.list_ratings_by_consumer(consumer_id, 1, 10)
-    assert len(ratings) == 3
-    assert total == 3
-    assert all(str(r.consumer_id) == str(consumer_id) for r in ratings)
+    ratings = [
+        {
+            "_id": uuid4(),
+            "professional_id": uuid4(),
+            "consumer_id": consumer_id,
+            "rate": 5,
+            "description": "Test rating 1",
+            "created_at": datetime.now(UTC)
+        },
+        {
+            "_id": uuid4(),
+            "professional_id": uuid4(),
+            "consumer_id": consumer_id,
+            "rate": 4,
+            "description": "Test rating 2",
+            "created_at": datetime.now(UTC)
+        }
+    ]
+    mock_repository.list_ratings_by_consumer.return_value = (ratings, len(ratings))
+
+    result, total = service.list_ratings_by_consumer(consumer_id)
+    assert len(result) == 2
+    assert total == 2
+    assert all(isinstance(r, RatingResponse) for r in result)
+    assert all(r.consumer_id == consumer_id for r in result)
 
 def test_delete_rating():
     repo = MockRatingRepository()
